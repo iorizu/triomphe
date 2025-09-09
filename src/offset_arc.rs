@@ -7,11 +7,11 @@ use core::ptr;
 
 use super::{Arc, ArcBorrow};
 
-/// An `Arc`, except it holds a pointer to the T instead of to the
-/// entire ArcInner.
+/// An `Arc<T>`, except that it points directly to the inner `T` value instead of to the
+/// entire `ArcInner`.
 ///
-/// An `OffsetArc<T>` has the same layout and ABI as a non-null
-/// `const T*` in C, and may be used in FFI function signatures.
+/// An `OffsetArc<T>` has the same layout and ABI as a non-null `const T*` in C, and may
+/// be used in FFI function signatures.
 ///
 /// ```text
 ///  Arc<T>    OffsetArc<T>
@@ -22,13 +22,11 @@ use super::{Arc, ArcBorrow};
 ///  ---------------------
 /// ```
 ///
-/// This means that this is a direct pointer to
-/// its contained data (and can be read from by both C++ and Rust),
-/// but we can also convert it to a "regular" `Arc<T>` by removing the offset.
+/// This means that this is a direct pointer to its contained data (and can be read from by both
+/// C++ and Rust), but we can also convert it to a "regular" `Arc<T>` by removing the offset.
 ///
-/// This is very useful if you have an Arc-containing struct shared between Rust and C++,
-/// and wish for C++ to be able to read the data behind the `Arc` without incurring
-/// an FFI call overhead.
+/// This is very useful if you have an Arc-containing struct shared between Rust and C++, and wish
+/// for C++ to be able to read the data behind the `Arc` without incurring an FFI call overhead.
 #[derive(Eq)]
 #[repr(transparent)]
 pub struct OffsetArc<T> {
@@ -83,7 +81,7 @@ impl<T: PartialEq> PartialEq for OffsetArc<T> {
 }
 
 impl<T> OffsetArc<T> {
-    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// Temporarily converts `self` into a bonafide `Arc<T>` and exposes it to the
     /// provided callback. The refcount is not modified.
     #[inline]
     pub fn with_arc<F, U>(&self, f: F) -> U

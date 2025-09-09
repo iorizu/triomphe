@@ -7,20 +7,18 @@ use core::ptr::NonNull;
 
 use super::Arc;
 
-/// A "borrowed `Arc`". This is a pointer to
-/// a T that is known to have been allocated within an
-/// `Arc`.
+/// A borrowed `T` for a `T` that is known to have been allocated by a [`crate::Arc`].
 ///
 /// This is equivalent in guarantees to `&Arc<T>`, however it is
 /// a bit more flexible. To obtain an `&Arc<T>` you must have
-/// an `Arc<T>` instance somewhere pinned down until we're done with it.
-/// It's also a direct pointer to `T`, so using this involves less pointer-chasing
+/// an `Arc<T>` instance somewhere pinned down until you're done with it.
+/// It's also a direct pointer to `T`, so using it involves less pointer-chasing.
 ///
-/// However, C++ code may hand us refcounted things as pointers to T directly,
-/// so we have to conjure up a temporary `Arc` on the stack each time. The
-/// same happens for when the object is managed by a `OffsetArc`.
+/// However, C++ code may hand us refcounted things as pointers to `T` directly,
+/// so we have to conjure up a temporary `Arc<T>` on the stack each time. The
+/// same happens for when the object is managed by a [`crate::OffsetArc`].
 ///
-/// `ArcBorrow` lets us deal with borrows of known-refcounted objects
+/// [`crate::self`] lets us deal with borrows of known-refcounted objects
 /// without needing to worry about where the `Arc<T>` is.
 #[derive(Debug, Eq, PartialEq)]
 #[repr(transparent)]
@@ -40,7 +38,7 @@ impl<'a, T> Clone for ArcBorrow<'a, T> {
 }
 
 impl<'a, T> ArcBorrow<'a, T> {
-    /// Clone this as an `Arc<T>`. This bumps the refcount.
+    /// Clones this as an `Arc<T>`. This bumps the refcount.
     #[inline]
     pub fn clone_arc(&self) -> Arc<T> {
         let arc = unsafe { Arc::from_raw(self.0.as_ptr()) };
@@ -49,8 +47,10 @@ impl<'a, T> ArcBorrow<'a, T> {
         arc
     }
 
-    /// For constructing from a pointer known to be Arc-backed,
-    /// e.g. if we obtain such a pointer over FFI
+    /// Constructs an `ArcBorrow<T>` from a `*const T`.
+    /// 
+    /// Use this when you want to construct an `ArcBorrow` from a pointer known to be `Arc`-backed,
+    /// e.g. if you obtained such a pointer over FFI.
     ///
     // TODO: should from_ptr be relaxed to unsized types? It can't be
     // converted back to an Arc right now for unsized types.
@@ -67,8 +67,8 @@ impl<'a, T> ArcBorrow<'a, T> {
         unsafe { ArcBorrow(NonNull::new_unchecked(ptr as *mut T), PhantomData) }
     }
 
-    /// Compare two `ArcBorrow`s via pointer equality. Will only return
-    /// true if they come from the same allocation
+    /// Compares two `ArcBorrow`s via pointer equality. Will only return
+    /// true if they point to the same allocation.
     #[inline]
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
         this.0 == other.0
@@ -87,7 +87,7 @@ impl<'a, T> ArcBorrow<'a, T> {
         Self::with_arc(this, |arc| Arc::strong_count(arc))
     }
 
-    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// Temporarily converts `self` into a bonafide `Arc` and passes it to the
     /// provided callback. The refcount is not modified.
     #[inline]
     pub fn with_arc<F, U>(&self, f: F) -> U
@@ -102,19 +102,19 @@ impl<'a, T> ArcBorrow<'a, T> {
         f(&transient)
     }
 
-    /// Similar to deref, but uses the lifetime |a| rather than the lifetime of
-    /// self, which is incompatible with the signature of the Deref trait.
+    /// Similar to [`Deref::deref`], but uses the lifetime `a` rather than the lifetime of
+    /// `self`, which is incompatible with the signature of the `Deref` trait.
     #[inline]
     pub fn get(&self) -> &'a T {
         unsafe { &*self.0.as_ptr() }
     }
 }
 
-impl<'a, T> Deref for ArcBorrow<'a, T> {
+impl<T> Deref for ArcBorrow<'_, T> {
     type Target = T;
 
     #[inline]
-    fn deref(&self) -> &T {
+    fn deref(&self) -> &Self::Target {
         self.get()
     }
 }

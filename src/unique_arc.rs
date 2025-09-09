@@ -42,19 +42,19 @@ use super::{Arc, ArcInner};
 #[repr(transparent)]
 pub struct UniqueArc<T: ?Sized>(Arc<T>);
 
-// Uniquene ownership means that we can support weaker bounds than `T: Send + Sync`.
+// Unique ownership means that we can support weaker bounds than `T: Send + Sync`.
 // Thus, these impls can follow the precedent of std's `Box`, not `Arc`.
 unsafe impl<T: ?Sized + Send> Send for UniqueArc<T> {}
 unsafe impl<T: ?Sized + Sync> Sync for UniqueArc<T> {}
 
 impl<T> UniqueArc<T> {
     #[inline]
-    /// Construct a new UniqueArc
+    /// Constructs a new UniqueArc<T>.
     pub fn new(data: T) -> Self {
         UniqueArc(Arc::new(data))
     }
 
-    /// Construct an uninitialized arc
+    /// Constructs a `UniqueArc` with uninitialized contents.
     #[inline]
     pub fn new_uninit() -> UniqueArc<MaybeUninit<T>> {
         unsafe {
@@ -72,7 +72,7 @@ impl<T> UniqueArc<T> {
         }
     }
 
-    /// Gets the inner value of the unique arc
+    /// Returns the inner value of the `UniqueArc`.
     pub fn into_inner(this: Self) -> T {
         // Wrap the Arc in a `ManuallyDrop` so that its drop routine never runs
         let this = ManuallyDrop::new(this.0);
@@ -89,7 +89,9 @@ impl<T> UniqueArc<T> {
 }
 
 impl<T: ?Sized> UniqueArc<T> {
-    /// Convert to a shareable `Arc<T>` once we're done mutating it
+    /// Converts the `UniqueArc` to an `Arc`.
+    ///
+    /// This is useful for creating a shareable pointer to `T` once you're done mutating it.
     #[inline]
     pub fn shareable(self) -> Arc<T> {
         self.0
@@ -101,8 +103,7 @@ impl<T: ?Sized> UniqueArc<T> {
     ///
     /// # Safety
     ///
-    /// The given `Arc` must have a reference count of exactly one
-    ///
+    /// The given `Arc` must have a reference count of exactly one.
     pub(crate) unsafe fn from_arc(arc: Arc<T>) -> Self {
         debug_assert_eq!(Arc::count(&arc), 1);
         Self(arc)
@@ -134,21 +135,21 @@ impl<T> UniqueArc<MaybeUninit<T>> {
             // Safety: We have exclusive access to the inner data
             ptr.write(val);
 
-            // Safety: the pointer was just written to
+            // Safety: The pointer was just written to
             &mut *ptr
         }
     }
 
-    /// Obtain a mutable pointer to the stored `MaybeUninit<T>`.
+    /// Returns a mutable pointer to the stored `MaybeUninit<T>`.
     pub fn as_mut_ptr(&mut self) -> *mut MaybeUninit<T> {
         unsafe { &mut (*self.0.ptr()).data }
     }
 
-    /// Convert to an initialized Arc.
+    /// Converts to `UniqueArc<T>`.
     ///
     /// # Safety
     ///
-    /// This function is equivalent to `MaybeUninit::assume_init` and has the
+    /// This function is equivalent to [`MaybeUninit::assume_init`] and has the
     /// same safety requirements. You are responsible for ensuring that the `T`
     /// has actually been initialized before calling this method.
     #[inline]

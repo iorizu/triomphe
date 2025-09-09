@@ -23,15 +23,15 @@ pub struct HeaderSlice<H, T: ?Sized> {
 }
 
 impl<H, T> Arc<HeaderSlice<H, [T]>> {
-    /// Creates an Arc for a HeaderSlice using the given header struct and
+    /// Creates an `Ar`c for a `HeaderSlice<H, [T]>` using the given `header` struct and
     /// iterator to generate the slice. The resulting Arc will be fat.
-    pub fn from_header_and_iter<I>(header: H, mut items: I) -> Self
+    pub fn from_header_and_iter<I>(header: H, mut iter: I) -> Self
     where
         I: Iterator<Item = T> + ExactSizeIterator,
     {
         assert_ne!(mem::size_of::<T>(), 0, "Need to think about ZST");
 
-        let num_items = items.len();
+        let num_items = iter.len();
 
         let inner = Arc::allocate_for_header_and_slice(num_items);
 
@@ -45,14 +45,14 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
             for _ in 0..num_items {
                 ptr::write(
                     current,
-                    items
+                    iter
                         .next()
                         .expect("ExactSizeIterator over-reported length"),
                 );
                 current = current.offset(1);
             }
             assert!(
-                items.next().is_none(),
+                iter.next().is_none(),
                 "ExactSizeIterator under-reported length"
             );
         }
@@ -64,8 +64,8 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         }
     }
 
-    /// Creates an Arc for a HeaderSlice using the given header struct and
-    /// iterator to generate the slice. The resulting Arc will be fat.
+    /// Creates an `Arc` for a `HeaderSlice<H, [T]>` using the given `header` struct and
+    /// slice. The resulting Arc will be fat.
     pub fn from_header_and_slice(header: H, items: &[T]) -> Self
     where
         T: Copy,
@@ -90,8 +90,8 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
         }
     }
 
-    /// Creates an Arc for a HeaderSlice using the given header struct and
-    /// vec to generate the slice. The resulting Arc will be fat.
+    /// Creates an `Arc` for a `HeaderSlice<H, [T]>` using the given `header` struct and
+    /// `Vec` to generate the slice. The resulting Arc will be fat.
     pub fn from_header_and_vec(header: H, mut v: Vec<T>) -> Self {
         let len = v.len();
 
@@ -132,8 +132,8 @@ impl<H, T> Arc<HeaderSlice<H, [T]>> {
 }
 
 impl<H> Arc<HeaderSlice<H, str>> {
-    /// Creates an Arc for a HeaderSlice using the given header struct and
-    /// a str slice to generate the slice. The resulting Arc will be fat.
+    /// Creates an `Arc<T>` for a `HeaderSlice<H, [T]>` using the given `header` struct and
+    /// `&str` to generate the slice. The resulting Arc will be fat.
     pub fn from_header_and_str(header: H, string: &str) -> Self {
         let bytes = Arc::from_header_and_slice(header, string.as_bytes());
 

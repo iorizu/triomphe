@@ -12,14 +12,14 @@ use core::ptr;
 use super::{Arc, ArcInner, HeaderSlice, HeaderSliceWithLengthProtected, HeaderWithLength};
 use crate::header::HeaderSliceWithLengthUnchecked;
 
-/// A "thin" `Arc` containing dynamically sized data
+/// A "thin" `Arc` containing dynamically sized data.
 ///
-/// This is functionally equivalent to `Arc<(H, [T])>`
+/// This is functionally equivalent to `Arc<(H, [T])>`.
 ///
 /// When you create an `Arc` containing a dynamically sized type
 /// like `HeaderSlice<H, [T]>`, the `Arc` is represented on the stack
 /// as a "fat pointer", where the length of the slice is stored
-/// alongside the `Arc`'s pointer. In some situations you may wish to
+/// alongside the `Arc`'s pointer. In some situations, you may wish to
 /// have a thin pointer instead, perhaps for FFI compatibility
 /// or space efficiency.
 ///
@@ -63,7 +63,7 @@ fn thin_to_thick<H, T>(arc: &ThinArc<H, T>) -> *mut ArcInner<HeaderSliceWithLeng
 }
 
 impl<H, T> ThinArc<H, T> {
-    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// Temporarily converts `self` into a bonafide Arc and exposes it to the
     /// provided callback. The refcount is not modified.
     #[inline]
     pub fn with_arc<F, U>(&self, f: F) -> U
@@ -80,7 +80,7 @@ impl<H, T> ThinArc<H, T> {
         f(&transient)
     }
 
-    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// Temporarily converts `self` into a bonafide Arc and exposes it to the
     /// provided callback. The refcount is not modified.
     #[inline]
     fn with_protected_arc<F, U>(&self, f: F) -> U
@@ -95,7 +95,7 @@ impl<H, T> ThinArc<H, T> {
         f(&transient)
     }
 
-    /// Temporarily converts |self| into a bonafide Arc and exposes it to the
+    /// Temporarily converts `self` into a bonafide Arc and exposes it to the
     /// provided callback. The refcount is not modified.
     #[inline]
     pub fn with_arc_mut<F, U>(&mut self, f: F) -> U
@@ -148,8 +148,8 @@ impl<H, T> ThinArc<H, T> {
         ret
     }
 
-    /// Creates a `ThinArc` for a HeaderSlice using the given header struct and
-    /// iterator to generate the slice.
+    /// Creates a `ThinArc<T>` from a `HeaderSlice` using the given header struct and iterator
+    /// to generate the slice.
     pub fn from_header_and_iter<I>(header: H, items: I) -> Self
     where
         I: Iterator<Item = T> + ExactSizeIterator,
@@ -158,8 +158,7 @@ impl<H, T> ThinArc<H, T> {
         Arc::into_thin(Arc::from_header_and_iter(header, items))
     }
 
-    /// Creates a `ThinArc` for a HeaderSlice using the given header struct and
-    /// a slice to copy.
+    /// Creates a `ThinArc` for a HeaderSlice using the given header struct and slice.
     pub fn from_header_and_slice(header: H, items: &[T]) -> Self
     where
         T: Copy,
@@ -168,31 +167,30 @@ impl<H, T> ThinArc<H, T> {
         Arc::into_thin(Arc::from_header_and_slice(header, items))
     }
 
-    /// Returns the address on the heap of the ThinArc itself -- not the T
-    /// within it -- for memory reporting.
+    /// Returns the address on the heap of the `ThinArc<T>` itself -- not the `T` within it -- for
+    /// memory reporting.
     #[inline]
     pub fn ptr(&self) -> *const c_void {
         self.ptr.cast().as_ptr()
     }
 
-    /// Returns the address on the heap of the Arc itself -- not the T within it -- for memory
-    /// reporting.
+    /// Returns the address on the heap of the `Arc<T>` itself -- not the `T` 
+    /// within it -- for memory reporting.
     #[inline]
     pub fn heap_ptr(&self) -> *const c_void {
         self.ptr()
     }
 
+    /// Constructs an `ThinArc<T>` from a raw pointer.
+    ///
     /// # Safety
+    /// 
+    /// The raw pointer must have been previously returned by a call to [`ThinArc::into_raw`].
     ///
-    /// Constructs an ThinArc from a raw pointer.
-    ///
-    /// The raw pointer must have been previously returned by a call to
-    /// ThinArc::into_raw.
-    ///
-    /// The user of from_raw has to make sure a specific value of T is only dropped once.
+    /// The user of `from_raw` must ensure that a specific value of `T` is only dropped once.
     ///
     /// This function is unsafe because improper use may lead to memory unsafety,
-    /// even if the returned ThinArc is never accessed.
+    /// even if the returned `ThinArc<T>` is never accessed.
     #[inline]
     pub unsafe fn from_raw(ptr: *const c_void) -> Self {
         Self {
